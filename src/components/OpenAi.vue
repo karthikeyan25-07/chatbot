@@ -1,6 +1,8 @@
+
 <template>
   <div>
-    <button class="btn" @click="toggleChat">
+    <!-- Chat Button -->
+    <button class="btn" @click="handleChatButtonClick">
       <svg
         id="ic_bubble"
         fill="#FFFFFF"
@@ -17,6 +19,7 @@
       </svg>
     </button>
 
+    <!-- Chat Box -->
     <div class="chat-box" v-show="isChatVisible">
       <div class="header">
         <h1>Hi there 👋</h1>
@@ -36,7 +39,6 @@
           }"
         >
           <span v-if="message.text">{{ message.text }}</span>
-          <span v-if="message.isLoading" class="dots-loader">...</span>
         </div>
       </div>
 
@@ -56,23 +58,39 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
-  name: "openAi",
+  name: "ChatBox",
   data() {
     return {
       isChatVisible: false,
       userMessage: "",
       messages: [{ text: "Hello! How can I help you?", sender: "bot" }],
+      sessionId: null,
     };
   },
   methods: {
+    handleChatButtonClick() {
+      this.isChatVisible = !this.isChatVisible;
+      const chatbotURL = `${window.location.origin}/?openChat=true`;
+      const newTab = window.open(chatbotURL, "_blank");
+      if (newTab) {
+        newTab.onload = () => {
+          newTab.postMessage({ action: "openChat" }, window.location.origin);
+        };
+      }
+    },
+
     toggleChat() {
       this.isChatVisible = !this.isChatVisible;
     },
+
     async sendMessage() {
       if (this.userMessage.trim() === "") return;
 
       this.messages.push({ text: this.userMessage, sender: "user" });
+      const userMessageCopy = this.userMessage;
       this.userMessage = "";
 
       const botMessage = { text: "", sender: "bot", isLoading: true };
@@ -80,12 +98,16 @@ export default {
       this.scrollToBottom();
 
       try {
-        const response = await fetch("https://api.adviceslip.com/advice");
-        const data = await response.json();
+        const response = await axios.post(
+          "https://4a06-14-195-132-106.ngrok-free.app/chat",
+          {
+            user_question: userMessageCopy,
+            session_id: this.sessionId,
+            stream: true,
+          }
+        );
         botMessage.isLoading = false;
-
-        // Simulating streaming response
-        await this.streamResponse(botMessage, data.slip.advice);
+        await this.streamResponse(botMessage, response.data);
       } catch (error) {
         botMessage.text = "Error fetching response. Please try again.";
         botMessage.isLoading = false;
@@ -93,6 +115,7 @@ export default {
         this.scrollToBottom();
       }
     },
+
     async streamResponse(botMessage, fullText) {
       botMessage.text = "";
       for (let i = 0; i < fullText.length; i++) {
@@ -101,6 +124,7 @@ export default {
         this.scrollToBottom();
       }
     },
+
     scrollToBottom() {
       this.$nextTick(() => {
         const container = this.$refs.messagesContainer;
@@ -110,9 +134,24 @@ export default {
       });
     },
   },
+  mounted() {
+    this.sessionId = crypto.randomUUID();
+
+    window.addEventListener("message", (event) => {
+      console.log("Received message:", event.data);
+      if (event.origin !== window.location.origin) return;
+      if (event.data.action === "openChat") {
+        this.isChatVisible = true;
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openChat") === "true") {
+      this.isChatVisible = true;
+    }
+  },
 };
 </script>
-
 <style scoped>
 .btn {
   display: flex;
@@ -139,7 +178,7 @@ export default {
   right: 20px;
   height: 500px;
   width: 370px;
-  border: 2px solid red;
+  border: 2px solid rgb(254, 0, 0);
   border-radius: 10px 10px 0px 0px;
   background-color: white;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
@@ -156,7 +195,7 @@ export default {
   height: 100px;
   font-size: 28px;
   color: white;
-  background-color: red;
+  background-color: rgb(254, 0, 0);
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 }
@@ -165,7 +204,7 @@ export default {
   background: white;
   border: none;
   font-size: 22px;
-  color: red;
+  color: rgb(254, 0, 0);
   border-radius: 50%;
   height: 40px;
   width: 40px;
@@ -185,14 +224,9 @@ export default {
   padding: 10px;
   display: flex;
   flex-direction: column;
-
-  /* WhatsApp-style background */
-  background-image: url("../assets/whatsapp_bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  max-height: 350px;
+  min-height: 350px;
 }
-
 .message {
   max-width: 75%;
   padding: 10px 15px;
@@ -203,8 +237,8 @@ export default {
 
 .user-message {
   align-self: flex-end;
-  background-color: #dcf8c6;
-  color: black;
+  background-color: rgb(245, 88, 88);
+  color: white;
   text-align: right;
 }
 
@@ -232,7 +266,7 @@ export default {
   margin-left: 10px;
   padding: 10px 15px;
   border: none;
-  background: red;
+  background: rgb(254, 0, 0);
   color: white;
   border-radius: 5px;
   cursor: pointer;

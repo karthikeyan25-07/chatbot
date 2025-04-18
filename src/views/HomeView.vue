@@ -1,17 +1,17 @@
 <template>
   <div class="home">
-    <openAi/>
+    <OpenAi/>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import openAi from '@/components/openAi.vue';
+import OpenAi from '../components/OpenAi.vue';
 
 export default {
   name: 'HomeView',
   components: {
-    openAi
+    OpenAi
   }
 }
 </script>

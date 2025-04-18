@@ -16,6 +16,7 @@
     "rasa-webchat": "^1.0.1",
     "tailwindcss": "^3",
     "vue": "^2.6.14",
+    "vue-custom-element": "^3.3.0",
     "vue-router": "^3.5.1",
     "vuex": "^3.6.2"
   },
